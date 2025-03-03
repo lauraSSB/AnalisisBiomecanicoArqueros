@@ -18,14 +18,16 @@ def inicio_video(landmarks,mp_pose):
     #en laterales es mayor en la coordenada X
     #en tasera es mayor en la coordenada Z
 def fin_video_coordenadas(camara,landmarks,mp_pose, inicio):
-    print(camara," ",inicio)
+    #print(camara," ",inicio)
     tobillo_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x
     rodilla_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x
-    cadera_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x
+    talon_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_HEEL.value].x
+    punta_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value].x
         
     tobillo_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x
     rodilla_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x
-    cadera_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x
+    talon_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_HEEL.value].x  
+    punta_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value].x
 
     if (camara == "T" and inicio == True):
         tobillo_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].z
@@ -42,15 +44,19 @@ def fin_video_coordenadas(camara,landmarks,mp_pose, inicio):
             return False
 
     elif (camara == "LD" and inicio == True):
-        if(tobillo_pateo > tobillo_no_pateo and rodilla_pateo > rodilla_no_pateo):
+        if(tobillo_pateo > tobillo_no_pateo and rodilla_pateo > rodilla_no_pateo and talon_pateo > talon_no_pateo and punta_pateo > punta_no_pateo):
+            print("Tobillos: ", tobillo_pateo," - ",tobillo_no_pateo)
+            print("Rodilla: ", rodilla_pateo," - ",rodilla_no_pateo)
+            print("Talon: ", talon_pateo," - ",talon_no_pateo)
+            print("Punta: ", punta_pateo," - ",punta_no_pateo)
             return True
         else:
             return False
     elif (camara == "LI" and inicio == True):
-        if(tobillo_pateo < tobillo_no_pateo and rodilla_pateo < rodilla_no_pateo):
+        if(tobillo_pateo < tobillo_no_pateo and rodilla_pateo < rodilla_no_pateo and talon_pateo < talon_no_pateo and punta_pateo < punta_no_pateo):
             return True
         else:
-            return False
+            return Falseaw3i
     else:
         return False
 
@@ -81,7 +87,7 @@ def lectura_video(path):
 
     print("Ancho:", ancho, "Alto:", alto, "FPS:", fps, "Total_frames:", total_frames)
 
-    with mp_pose.Pose(min_detection_confidence=0.90, min_tracking_confidence=0.9, model_complexity=2) as pose: 
+    with mp_pose.Pose(min_detection_confidence=0.90, min_tracking_confidence=0.95, model_complexity=2) as pose: 
         while captura.isOpened():
             if not pausa:  # Solo leer un nuevo frame si no está en pausa
                 ret, frame = captura.read()
@@ -119,7 +125,7 @@ def lectura_video(path):
                                 frame,
                                 resultados.pose_landmarks,
                                 mp_pose.POSE_CONNECTIONS,
-                                mp_marcar.DrawingSpec(color=(0, 0, 255), thickness=1, circle_radius=1),
+                                mp_marcar.DrawingSpec(color=(0, 0, 255), thickness=1, circle_radius=3),
                                 mp_marcar.DrawingSpec(color=(255, 255, 255), thickness=1, circle_radius=1)
                             )
                         else:
@@ -152,8 +158,13 @@ def lectura_video(path):
     cv2.destroyAllWindows()
     return(path," - ",num_frame_inicio)
 
+rutas_videos = [
+    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralDerecha (Lau)/Piso_LD_",
+    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralIzquierda (Sofi)/Piso_LI_",
+    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/Trasera(Andy)/Piso_T_"
+]
 
-print(lectura_video("C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralDerecha (Lau)/Piso_LD_4.MOV"))
-print(lectura_video("C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralIzquierda (Sofi)/Piso_LI_4.MOV"))
-print(lectura_video("C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/Trasera(Andy)/Piso_T_4.MOV"))
-
+for i in range(4,38):  # 38 porque el range() excluye el último número
+    for ruta_base in rutas_videos:
+        video_path = f"{ruta_base}{i}.MOV"
+        print(lectura_video(video_path))
