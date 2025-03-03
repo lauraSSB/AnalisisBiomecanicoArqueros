@@ -1,6 +1,9 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import os
+
+MAX_HISTORIAL = 5
 
 #Función que establece el parametro biomecanico del inicio del video
 #Recordar que el (0,0) esta en la esquina superior izquierda
@@ -60,11 +63,34 @@ def fin_video_coordenadas(camara,landmarks,mp_pose, inicio):
     else:
         return False
 
-def lectura_video(path):
-    #Inicialización de colas para supervisar que no hayan cambios grandes al momento de hacer la lectura
-    #historial_pierna_derecha = []
-    #historial_pierna_izquierda = []
+#Función para verificar que los cambios entre coordenadas entre el frame anterior y el actual no sea mayor al 20%
+#Se va a hacer todo respecto a los tobillos, que son los principales actores en este caso
+def verificar_cambios(landmarks, mp_pose,historial_tobillo_pateo,historial_tobillo_no_pateo):
+    tobillo_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x
+    tobillo_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x
 
+    historial_tobillo_pateo.append(tobillo_pateo)
+    historial_tobillo_no_pateo.append(tobillo_no_pateo)
+
+    #Verificar que solo hay 5 elementos en el historial
+    if len(historial_tobillo_pateo) > MAX_HISTORIAL:
+        historial_tobillo_pateo.pop(0)
+        historial_tobillo_no_pateo.pop(0)
+
+    if len(historial_tobillo_pateo) >= 2:
+        cambio_pateo = abs(historial_tobillo_pateo[-1] - historial_tobillo_pateo[-2])
+        cambio_no_pateo = abs(historial_tobillo_no_pateo[-1] - historial_tobillo_no_pateo[-2])
+        #print(cambio_pateo," ------ ",cambio_no_pateo)
+        if cambio_pateo > 0.05 or cambio_no_pateo > 0.05:
+            return True #Si cambio la pierna
+
+    return False
+
+def lectura_video(path):
+
+    #Inicialización de colas para supervisar que no hayan cambios grandes al momento de hacer la lectura
+    historial_tobillo_pateo = []
+    historial_tobillo_no_pateo = []
 
     mp_marcar = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
@@ -97,7 +123,7 @@ def lectura_video(path):
                 ret, frame = captura.read()
 
                 if ret:
-                    print("----",num_frame_inicio)
+                    resultados = pose.process(frame)
                     if "trasera" in path.lower():
                         camara = "T"
                         frame = cv2.rotate(frame, cv2.ROTATE_180)  # Rota la imagen 180°
@@ -105,13 +131,13 @@ def lectura_video(path):
                         camara = "LD"
                     else:
                         camara = "LI"
-                
-                    resultados = pose.process(frame)
-
-                    frame.flags.writeable = True
 
                     if resultados.pose_landmarks:
                         landmarks = resultados.pose_landmarks.landmark
+
+                        if verificar_cambios(landmarks, mp_pose, historial_tobillo_pateo, historial_tobillo_no_pateo):
+                            print("Recalculando")
+                            continue
 
                         if inicio_video(landmarks,mp_pose):
                             bandera_rodilla = True
@@ -122,8 +148,7 @@ def lectura_video(path):
                         elif camara == "LI" or camara == "LD":
                             if fin_video_coordenadas(camara,landmarks,mp_pose,bandera_rodilla):
                                 bandera_fin = True 
-                           
-
+                                
                         if bandera_rodilla == False:
                             num_frame_inicio += 1
                             mp_marcar.draw_landmarks(
@@ -164,12 +189,12 @@ def lectura_video(path):
     return(path," - ",num_frame_inicio)
 
 rutas_videos = [
-    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralDerecha (Lau)/Piso_LD_",
-    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralIzquierda (Sofi)/Piso_LI_",
-    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/Trasera(Andy)/Piso_T_"
+    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralDerecha (Lau)/Piso_LD_"
+    #"C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralIzquierda (Sofi)/Piso_LI_",
+    #"C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/Trasera(Andy)/Piso_T_"
 ]
 
-for i in range(4,38):  # 38 porque el range() excluye el último número
+for i in range(5,9):  # 38 porque el range() excluye el último número
     for ruta_base in rutas_videos:
         video_path = f"{ruta_base}{i}.MOV"
         print(lectura_video(video_path))
