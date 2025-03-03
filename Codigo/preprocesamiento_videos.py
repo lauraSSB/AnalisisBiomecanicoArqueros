@@ -61,7 +61,11 @@ def fin_video_coordenadas(camara,landmarks,mp_pose, inicio):
         return False
 
 def lectura_video(path):
-    print(path)
+    #Inicialización de colas para supervisar que no hayan cambios grandes al momento de hacer la lectura
+    #historial_pierna_derecha = []
+    #historial_pierna_izquierda = []
+
+
     mp_marcar = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
 
@@ -93,6 +97,7 @@ def lectura_video(path):
                 ret, frame = captura.read()
 
                 if ret:
+                    print("----",num_frame_inicio)
                     if "trasera" in path.lower():
                         camara = "T"
                         frame = cv2.rotate(frame, cv2.ROTATE_180)  # Rota la imagen 180°

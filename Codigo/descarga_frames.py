@@ -1,35 +1,106 @@
 import cv2
 import os
+import mediapipe as mp
 
-video = r"C:\Users\laura\OneDrive - Pontificia Universidad Javeriana\Videos Tesis\Saques de Piso\LateralDerecha (Lau)\Piso_LD_5.MOV"
+#Función que descarga un 5 frames siguientes a un determinado frame de un video. Se puede especificar la rita de descarga
+def descarga_normal(video, carpeta_frame, num_frame):
+    os.makedirs(carpeta_frame, exist_ok=True)
 
-carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames"
+    output_path = os.path.join(carpeta_frame, "frame2.jpg")
 
-os.makedirs(carpeta_frame, exist_ok=True)
+    captura = cv2.VideoCapture(video)
 
-output_path = os.path.join(carpeta_frame, "frame2.jpg")
+    if not captura.isOpened():
+        print("Error al abrir el video.")
+        exit()
 
-captura = cv2.VideoCapture(video)
+    for i in range(0,5):
+        print(num_frame+i)
+        captura.set(cv2.CAP_PROP_POS_FRAMES, num_frame+i)
 
-if not captura.isOpened():
-    print("Error al abrir el video.")
-    exit()
+        ret, frame = captura.read()
+        if frame[0, 0][0] < frame[-1, -1][0]:  # Comparación de color en esquinas
+            print("🔄 Video detectado con rotación 180°, corrigiendo...")
+            frame = cv2.rotate(frame, cv2.ROTATE_180)  # Rota la imagen 180°
 
-num_frame = 190  # Número del frame que quieres extraer
+        if ret:
+            cv2.imshow("Frame Extraído", frame)
 
-captura.set(cv2.CAP_PROP_POS_FRAMES, num_frame)
+            #cv2.imwrite(output_path, frame)
+            print(f"Frame guardado en: {carpeta_frame}")
 
-ret, frame = captura.read()
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        else:
+            print("No se pudo leer el frame.")
+        
+    captura.release()
 
-if ret:
-    cv2.imshow("Frame Extraído", frame)
+def dibujar_piernas(frame, landmarks, mp_pose):
+    PIERNA_DERECHA = [
+        (mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE),
+        (mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE),
+        (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_HEEL),
+        (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
+        (mp_pose.PoseLandmark.RIGHT_HEEL, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
+    ]
 
-    cv2.imwrite(output_path, frame)
-    print(f"Frame guardado en: {carpeta_frame}")
+    PIERNA_IZQUIERDA = [
+        (mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_KNEE),
+        (mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_ANKLE),
+        (mp_pose.PoseLandmark.LEFT_ANKLE, mp_pose.PoseLandmark.LEFT_HEEL),
+        (mp_pose.PoseLandmark.LEFT_ANKLE, mp_pose.PoseLandmark.LEFT_FOOT_INDEX),
+        (mp_pose.PoseLandmark.LEFT_HEEL, mp_pose.PoseLandmark.LEFT_FOOT_INDEX),
+    ]
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-else:
-    print("No se pudo leer el frame.")
+    h, w, _ = frame.shape
+
+    for connection in PIERNA_DERECHA:
+        p1 = landmarks[connection[0].value]
+        p2 = landmarks[connection[1].value]
+        cv2.line(frame, (int(p1.x * w), int(p1.y * h)), (int(p2.x * w), int(p2.y * h)), (255, 0, 0), 2)
+        cv2.circle(frame, (int(p1.x * w), int(p1.y * h)), 5, (255, 0, 0), -1)
+        cv2.circle(frame, (int(p2.x * w), int(p2.y * h)), 5, (255, 0, 0), -1)
+
+    for connection in PIERNA_IZQUIERDA:
+        p1 = landmarks[connection[0].value]
+        p2 = landmarks[connection[1].value]
+        cv2.line(frame, (int(p1.x * w), int(p1.y * h)), (int(p2.x * w), int(p2.y * h)), (0, 255, 0), 2)
+        cv2.circle(frame, (int(p1.x * w), int(p1.y * h)), 5, (0, 255, 0), -1)
+        cv2.circle(frame, (int(p2.x * w), int(p2.y * h)), 5, (0, 255, 0), -1)
+
+def descarga_piernas(video, carpeta_frame, num_frame):
+    os.makedirs(carpeta_frame, exist_ok=True)
     
-captura.release()
+    mp_pose = mp.solutions.pose
+    pose = mp_pose.Pose()
+    
+    captura = cv2.VideoCapture(video)
+    
+    if not captura.isOpened():
+        print("Error al abrir el video.")
+        exit()
+    
+    for i in range(-1, 4):
+        captura.set(cv2.CAP_PROP_POS_FRAMES, num_frame + i)
+        ret, frame = captura.read()
+        
+        if not ret:
+            print("No se pudo leer el frame.")
+            continue
+        
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        resultado = pose.process(rgb_frame)
+        
+        if resultado.pose_landmarks:
+            dibujar_piernas(frame, resultado.pose_landmarks.landmark, mp_pose)
+        
+        output_path = os.path.join(carpeta_frame, f"frame_{num_frame + i}.jpg")
+        cv2.imwrite(output_path, frame)
+        #cv2.imshow("Frame",frame)
+        print(f"Frame guardado en: {output_path}")
+    
+    captura.release()
+
+descarga_piernas(video = "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralDerecha (Lau)/Piso_LD_5.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 191 )
+#descarga_normal(video = r"C:\Users\laura\OneDrive - Pontificia Universidad Javeriana\Videos Tesis\Saques de Piso\Trasera(Andy)\Piso_T_5.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 120 )
