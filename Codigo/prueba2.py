@@ -1,97 +1,151 @@
 import cv2
 import mediapipe as mp
+import os
 import numpy as np
 
-def angulos(punto1, punto2, punto3):
-    p1 = np.array(punto1)
-    p2 = np.array(punto2)
-    p3 = np.array(punto3)
-
-    vector1 = p1 - p2
-    vector2 = p3 - p2
-
-    producto_punto = np.dot(vector1, vector2)
-    norma_vector1 = np.linalg.norm(vector1)
-    norma_vector2 = np.linalg.norm(vector2)
-
-    coseno_theta = producto_punto / (norma_vector1 * norma_vector2)
-    angulo = np.degrees(np.arccos(coseno_theta))
-    return angulo
-
-def coordenadas(rodilla, tobillo):
+# Función para determinar si ha iniciado el movimiento
+def inicio_video(landmarks, mp_pose):
+    rodilla = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y
+    tobillo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y
     return rodilla > tobillo
 
-mp_drawing = mp.solutions.drawing_utils
-mp_pose = mp.solutions.pose
+# Función para determinar si ha finalizado el movimiento
+def fin_video_coordenadas(camara, landmarks, mp_pose, inicio):
+    tobillo_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x
+    rodilla_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x
+    talon_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_HEEL.value].x
+    punta_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value].x
 
-captura = cv2.VideoCapture('pruebaIOS.MOV',cv2.CAP_FFMPEG)
+    tobillo_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x
+    rodilla_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x
+    talon_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_HEEL.value].x
+    punta_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value].x
 
-if not captura.isOpened():
-    print("Error al abrir el video")
-    exit()
+    if camara == "T" and inicio:
+        tobillo_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].z
+        rodilla_pateo = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].z
+        tobillo_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].z
+        rodilla_no_pateo = landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].z
+        return tobillo_pateo > tobillo_no_pateo and rodilla_pateo > rodilla_no_pateo
 
-ret, frame = captura.read()
-h, w, _ = frame.shape
-scale_factor = 1
+    elif camara in ["LD", "LI"] and inicio:
+        return (tobillo_pateo > tobillo_no_pateo and rodilla_pateo > rodilla_no_pateo and
+                talon_pateo > talon_no_pateo and punta_pateo > punta_no_pateo)
 
-bandera_rodilla = False
-pausa = False
+    return False
 
-with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=2) as pose:
-    while captura.isOpened():
-        if not pausa:
-            ret, frame = captura.read()
+# Función para dibujar solo las piernas con colores diferenciados
+def dibujar_piernas(frame, landmarks, mp_pose):
+    PIERNA_DERECHA = [
+        (mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE),
+        (mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE),
+        (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_HEEL),
+        (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
+        (mp_pose.PoseLandmark.RIGHT_HEEL, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
+    ]
 
-            if ret:
-                frame = cv2.resize(frame, (int(frame.shape[1] * scale_factor), int(frame.shape[0] * scale_factor)))
-                #frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    PIERNA_IZQUIERDA = [
+        (mp_pose.PoseLandmark.LEFT_HIP, mp_pose.PoseLandmark.LEFT_KNEE),
+        (mp_pose.PoseLandmark.LEFT_KNEE, mp_pose.PoseLandmark.LEFT_ANKLE),
+        (mp_pose.PoseLandmark.LEFT_ANKLE, mp_pose.PoseLandmark.LEFT_HEEL),
+        (mp_pose.PoseLandmark.LEFT_ANKLE, mp_pose.PoseLandmark.LEFT_FOOT_INDEX),
+        (mp_pose.PoseLandmark.LEFT_HEEL, mp_pose.PoseLandmark.LEFT_FOOT_INDEX),
+    ]
+
+    h, w, _ = frame.shape
+
+    # Dibujar pierna derecha (Azul)
+    for connection in PIERNA_DERECHA:
+        p1 = landmarks[connection[0].value]
+        p2 = landmarks[connection[1].value]
+        cv2.line(frame, (int(p1.x * w), int(p1.y * h)), (int(p2.x * w), int(p2.y * h)), (255, 0, 0), 2)
+
+    # Dibujar pierna izquierda (Verde)
+    for connection in PIERNA_IZQUIERDA:
+        p1 = landmarks[connection[0].value]
+        p2 = landmarks[connection[1].value]
+        cv2.line(frame, (int(p1.x * w), int(p1.y * h)), (int(p2.x * w), int(p2.y * h)), (0, 255, 0), 2)
+
+# Función principal para procesar los videos
+def lectura_video(path):
+    print(path)
+    mp_pose = mp.solutions.pose
+    captura = cv2.VideoCapture(path, cv2.CAP_FFMPEG)
+
+    if not captura.isOpened():
+        print("Error al abrir el video")
+        return
+
+    ancho = int(captura.get(cv2.CAP_PROP_FRAME_WIDTH))
+    alto = int(captura.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    num_frame_inicio = 0
+
+    bandera_rodilla = False
+    bandera_fin = False
+    camara = ""
+    pausa = False
+    x = 0
+    print("Ancho:", ancho, "Alto:", alto)
+
+    with mp_pose.Pose(min_detection_confidence=0.90, min_tracking_confidence=0.95, model_complexity=2) as pose:
+        while captura.isOpened():
+            if not pausa:
+                ret, frame = captura.read()
+                if not ret:
+                    break
+
+                x+=1
+
+                if "trasera" in path.lower():
+                    camara = "T"
+                    frame = cv2.rotate(frame, cv2.ROTATE_180)
+                elif "LD" in path:
+                    camara = "LD"
+                else:
+                    camara = "LI"
+
                 resultados = pose.process(frame)
-
                 frame.flags.writeable = True
 
                 if resultados.pose_landmarks:
                     landmarks = resultados.pose_landmarks.landmark
 
-                    rodilla = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value]
-                    tobillo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value]
-                    cadera = landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value]
-
-                    if coordenadas(rodilla.y, tobillo.y):
-                        color_puntos = (255, 0, 0)
+                    if inicio_video(landmarks, mp_pose):
                         bandera_rodilla = True
-                    elif (bandera_rodilla == False):
-                        color_puntos = (0, 0, 255)
 
-                    puntos_interes = [mp_pose.PoseLandmark.RIGHT_KNEE.value,
-                                      mp_pose.PoseLandmark.RIGHT_ANKLE.value]
+                    if bandera_rodilla and fin_video_coordenadas(camara, landmarks, mp_pose, bandera_rodilla):
+                        bandera_fin = True
 
-                    conexion_interes = [(mp_pose.PoseLandmark.RIGHT_KNEE.value,
-                                         mp_pose.PoseLandmark.RIGHT_ANKLE.value)]
+                    # Dibujar solo piernas con colores diferenciados
+                    dibujar_piernas(frame, landmarks, mp_pose)
 
-                    for idx in puntos_interes:
-                        x, y = int(landmarks[idx].x * frame.shape[1]), int(landmarks[idx].y * frame.shape[0])
-                        cv2.circle(frame, (x, y), 5, color_puntos, -1)
+                if(bandera_fin == True or x>=189 ):
+                        c = "C:/Users/laura/OneDrive/Documents/TrabajoGrado_LauraSalamanca/Frames"
+                        os.makedirs(c, exist_ok=True)
 
-                    for conexion in conexion_interes:
-                        inicio = (int(landmarks[conexion[0]].x * frame.shape[1]), int(landmarks[conexion[0]].y * frame.shape[0]))
-                        fin = (int(landmarks[conexion[1]].x * frame.shape[1]), int(landmarks[conexion[1]].y * frame.shape[0]))
-                        cv2.line(frame, inicio, fin, (255, 255, 255), 2)
+                        output_path = os.path.join(c, f"frame_raro_{x}.jpg")
+                        cv2.imwrite(output_path, frame)
+                        if bandera_fin:
+                            exit()
+                cv2.imshow("Mediapipe Pose - Piernas Coloreadas", frame)
 
-                    angulo = angulos(
-                        (cadera.x, cadera.y, cadera.z),
-                        (rodilla.x, rodilla.y, rodilla.z),
-                        (tobillo.x, tobillo.y, tobillo.z)
-                    )
+            key = cv2.waitKey(25) & 0xFF
+            if key == ord('q'):
+                break
+            elif key == ord('p'):
+                pausa = not pausa
 
-                    cv2.putText(frame, f"Angulo Rodilla: {int(angulo)}", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+    captura.release()
+    cv2.destroyAllWindows()
 
-        cv2.imshow("Rodilla y Tobillo Derecho", frame)
+# Correr todos los videos
+rutas_videos = [
+    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralDerecha (Lau)/Piso_LD_",
+    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/LateralIzquierda (Sofi)/Piso_LI_",
+    "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/Trasera(Andy)/Piso_T_"
+]
 
-        key = cv2.waitKey(25) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('p'):
-            pausa = not pausa
-
-captura.release()
-cv2.destroyAllWindows()
+for i in range(5, 38):  # De 4 a 37
+    for ruta_base in rutas_videos:
+        video_path = f"{ruta_base}{i}.MOV"
+        lectura_video(video_path)

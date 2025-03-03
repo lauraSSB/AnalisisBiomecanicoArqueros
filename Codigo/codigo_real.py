@@ -80,7 +80,6 @@ with mp_pose.Pose(min_detection_confidence=0.7, min_tracking_confidence=0.5, mod
                             mp_marcar.DrawingSpec(color=(255, 255, 255), thickness=1, circle_radius=1)
                         )
                     else:
-                        print("ENTRO A LA MONDA")
                         mp_marcar.draw_landmarks(
                             frame,
                             resultados.pose_landmarks,
