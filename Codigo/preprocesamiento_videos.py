@@ -15,8 +15,8 @@ malos = []
 #Recordar que el (0,0) esta en la esquina superior izquierda
 def inicio_video(landmarks,mp_pose):
     rodilla = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y 
-    tobillo = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y
-    if (rodilla>tobillo):
+    talon = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y
+    if (rodilla>talon):
         return True
     else: 
         return False
