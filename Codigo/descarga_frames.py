@@ -39,11 +39,10 @@ def descarga_normal(video, carpeta_frame, num_frame):
 def dibujar_piernas(frame, landmarks, mp_pose):
     PIERNA_DERECHA = [
         (mp_pose.PoseLandmark.RIGHT_HIP, mp_pose.PoseLandmark.RIGHT_KNEE),
-        (mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE)
-        # ,
-        # (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_HEEL),
-        # (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
-        # (mp_pose.PoseLandmark.RIGHT_HEEL, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
+        (mp_pose.PoseLandmark.RIGHT_KNEE, mp_pose.PoseLandmark.RIGHT_ANKLE),
+        (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_HEEL),
+        (mp_pose.PoseLandmark.RIGHT_ANKLE, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
+        (mp_pose.PoseLandmark.RIGHT_HEEL, mp_pose.PoseLandmark.RIGHT_FOOT_INDEX),
     ]
 
     PIERNA_IZQUIERDA = [
@@ -97,7 +96,8 @@ def descarga_piernas(video, carpeta_frame, num_frame):
             print("No se pudo leer el frame.")
             continue
         
-        frame = cv2.rotate(frame, cv2.ROTATE_180)
+        frame = cv2.resize(frame, (int(frame.shape[1] * 0.6), int(frame.shape[0] * 0.6)))
+        #frame = cv2.rotate(frame, cv2.ROTATE_180)
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         resultado = pose.process(rgb_frame)
         
@@ -111,5 +111,5 @@ def descarga_piernas(video, carpeta_frame, num_frame):
     
     captura.release()
 
-descarga_piernas(video = "C:/Users/laura/OneDrive - Pontificia Universidad Javeriana/Videos Tesis/Saques de Piso/Trasera(Andy)/Piso_T_5.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 119 )
+descarga_piernas(video = "G:/Mi unidad/Videos Trabajo de Grado/Lateral Izquierda (Sofi)/Piso_LI_11.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 358 )
 #descarga_normal(video = r"C:\Users\laura\OneDrive - Pontificia Universidad Javeriana\Videos Tesis\Saques de Piso\Trasera(Andy)\Piso_T_5.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 120 )
