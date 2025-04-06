@@ -81,7 +81,7 @@ def descarga_piernas(video, carpeta_frame, num_frame):
     os.makedirs(carpeta_frame, exist_ok=True)
     
     mp_pose = mp.solutions.pose
-    pose = mp_pose.Pose(min_detection_confidence=0.5, model_complexity=2)
+    pose = mp_pose.Pose(min_detection_confidence=0.8, min_tracking_confidence=0.80, model_complexity=2)
     
     captura = cv2.VideoCapture(video)
     
@@ -97,19 +97,19 @@ def descarga_piernas(video, carpeta_frame, num_frame):
             continue
         
         frame = cv2.resize(frame, (int(frame.shape[1] * 0.6), int(frame.shape[0] * 0.6)))
-        #frame = cv2.rotate(frame, cv2.ROTATE_180)
+        frame = cv2.rotate(frame, cv2.ROTATE_180)
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         resultado = pose.process(rgb_frame)
         
         if resultado.pose_landmarks:
             dibujar_piernas(frame, resultado.pose_landmarks.landmark, mp_pose)
         
-        output_path = os.path.join(carpeta_frame, f"T_inicio{i}.jpg")
+        output_path = os.path.join(carpeta_frame, f"LI_inicio{i}.jpg")
         cv2.imwrite(output_path, frame)
         #cv2.imshow("Frame",frame)
         print(f"Frame guardado en: {output_path}")
     
     captura.release()
 
-descarga_piernas(video = "G:/Mi unidad/Videos Trabajo de Grado/Lateral Izquierda (Sofi)/Piso_LI_11.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 358 )
+descarga_piernas(video = "G:/Mi unidad/Videos Trabajo de Grado/Lateral Izquierda (Sofi)/Piso_LI_46.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 319 )
 #descarga_normal(video = r"C:\Users\laura\OneDrive - Pontificia Universidad Javeriana\Videos Tesis\Saques de Piso\Trasera(Andy)\Piso_T_5.MOV",carpeta_frame = r"C:\Users\laura\OneDrive\Documents\TrabajoGrado_LauraSalamanca\Frames", num_frame = 120 )

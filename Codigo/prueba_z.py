@@ -7,7 +7,7 @@ mp_drawing = mp.solutions.drawing_utils  # Herramienta para dibujar
 pose = mp_pose.Pose(min_detection_confidence=0.90, min_tracking_confidence=0.95, model_complexity=2)
 
 # Capturar video desde el archivo
-cap = cv2.VideoCapture("G:/Mi unidad/Videos Trabajo de Grado/Trasera (Andy)/Piso_T_11.MOV")  
+cap = cv2.VideoCapture("C:/Users/laura/OneDrive/Documents/TrabajoGrado_LauraSalamanca/Codigo/interfaz/media/rotated_Piso_LD_51.MOV")  
 
 # Variable de pausa
 pausa = False  
