@@ -1,6 +1,6 @@
 # Análisis biomecánico del saque de piso en arqueros utilizando estimación de pose sin marcadores
 
-El objetivo principal es desarrollar un sistema de **análisis biomecánico** del gesto técnico del **saque de piso** en arqueros de fútbol universitario, utilizando **visión por computadora** y **estimación de pose sin marcadores** a través de **MediaPipe**.
+El objetivo principal fue desarrollar un sistema de **análisis biomecánico** del gesto técnico del **saque de piso** en arqueros de fútbol universitario, utilizando **visión por computadora** y **estimación de pose sin marcadores** a través de **MediaPipe**.
 
 ## Descripción general
 
