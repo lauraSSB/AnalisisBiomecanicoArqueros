@@ -591,7 +591,7 @@ def extraer_landmarks(path, frame_inicio, frame_final, camara, puntos_a_usar):
         if resultados.pose_landmarks:
             landmarks = resultados.pose_landmarks.landmark
 
-            if frame_id >= frame_inicio and verificar_cambios_piernas(landmarks, mp_pose, historial_tobillo_pateo, historial_tobillo_no_pateo):
+            if frame_id >= frame_inicio and verificar_cambios(landmarks, mp_pose, historial_tobillo_pateo, historial_tobillo_no_pateo):
                 if landmarks_anterior is not None:
                     landmarks = deepcopy(landmarks_anterior)
             else:
