@@ -6,7 +6,6 @@
     <title>Video Upload and Display</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Grid container para los videos */
         .video-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr); /* Dos videos por fila */
@@ -19,23 +18,22 @@
             text-align: center;
         }
 
-        /* Para que el video de abajo ocupe toda la fila y se centre */
         .video-item-bottom {
             text-align: center;
-            grid-column: span 2; /* Ocupa toda la fila */
+            grid-column: span 2; 
         }
 
-        /* Asegurarse de que todos los videos tengan el mismo tamaño */
         .video-item video {
-            width: 780px; /* Los videos ocupan el 100% del contenedor */
-            height: auto;  /* Mantiene la proporción */
+            width: 780px; 
+            height: auto;  
             object-fit: contain;
+            margin: 0 auto; 
+            display: block; 
         }
 
-        /* Media query para pantallas más pequeñas */
         @media (max-width: 768px) {
             .video-grid {
-                grid-template-columns: 1fr; /* Solo una columna en pantallas pequeñas */
+                grid-template-columns: 1fr; 
             }
         }
     </style>
@@ -46,60 +44,69 @@
         <span class="navbar-brand mb-0 h1">Universidad Javeriana</span>
     </nav>
 
-    <h1 class="text-center my-5">Análisis Biomecanico del saque de Piso</h1>
+    <h1 class="text-center my-5">Análisis Biomecánico del saque de piso de los arqueros</h1>
 
     <div class="container">
         <div class="mt-5">
             <form action="." method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="video1">Cargue el video de la vista Derecha:</label>
-                    <input type="file" name="video1" id="video1" class="form-control-file" />
+                    <label for="videoLD">Cargue el video de la vista Derecha:</label>
+                    <input type="file" name="videoLD" id="videoLD" class="form-control-file" />
                 </div>
                 <div class="form-group">
-                    <label for="video2">Cargue el video de la vista Izquierda:</label>
-                    <input type="file" name="video2" id="video2" class="form-control-file" />
+                    <label for="videoLI">Cargue el video de la vista Izquierda:</label>
+                    <input type="file" name="videoLI" id="videoLI" class="form-control-file" />
                 </div>
                 <div class="form-group">
-                    <label for="video3">Cargue el video de la vista Trasera:</label>
-                    <input type="file" name="video3" id="video3" class="form-control-file" />
+                    <label for="videoT">Cargue el video de la vista Trasera:</label>
+                    <input type="file" name="videoT" id="videoT" class="form-control-file" />
                 </div>
-                <button type="submit" class="btn btn-success btn-lg">Upload</button>
+                <button type="submit" class="btn btn-success btn-lg">Cargar</button>
             </form>
         </div>
 
         <hr>
 
-        {% if video1_url or video2_url or video3_url %}
+        {% if videoLD_url or videoLI_url or videoT_url %}
             <div class="video-grid">
-                {% if video1_url %}
+                {% if videoLD_url %}
                     <div class="video-item">
-                        <h4>Uploaded Video 1 (Derecha):</h4>
+                        <h4>Video de la vista Derecha:</h4>
                         <video controls>
-                            <source src="{{ video1_url }}" type="video/mp4" />
+                            <source src="{{ videoLD_url }}" type="video/mp4" />
                         </video>
                     </div>
                 {% endif %}
 
-                {% if video2_url %}
+                {% if videoLI_url %}
                     <div class="video-item">
-                        <h4>Uploaded Video 2 (Izquierda):</h4>
+                        <h4>Video de la vista Izquierda:</h4>
                         <video controls>
-                            <source src="{{ video2_url }}" type="video/mp4" />
+                            <source src="{{ videoLI_url }}" type="video/mp4" />
                         </video>
                     </div>
                 {% endif %}
 
-                {% if video3_url %}
+                {% if videoT_url %}
                     <div class="video-item video-item-bottom">
-                        <h4>Uploaded Video 3 (Frontal):</h4>
+                        <h4>Video de la vista Trasera:</h4>
                         <video controls>
-                            <source src="{{ video3_url }}" type="video/mp4" />
+                            <source src="{{ videoT_url }}" type="video/mp4" />
                         </video>
                     </div>
                 {% endif %}
             </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'descargar_excel' %}" class="btn btn-primary btn-lg">
+                    Descargar Reporte de Ángulos
+                </a>
+            </div>
+            
         {% endif %}
+
+        
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
